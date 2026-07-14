@@ -31,21 +31,6 @@ RUN apk add --no-cache --update \
     && docker-php-ext-enable redis \
     && apk del autoconf make g++ gcc libc-dev
 
-# Install ionCube Loader for PHP 8.3
-RUN set -eux; \
-    apk add --no-cache libstdc++; \
-    curl -fSL "https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz" \
-        -o /tmp/ioncube.tar.gz; \
-    tar -xzf /tmp/ioncube.tar.gz -C /tmp; \
-    PHP_VERSION="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"; \
-    EXTENSION_DIR="$(php -r 'echo ini_get("extension_dir");')"; \
-    cp "/tmp/ioncube/ioncube_loader_lin_${PHP_VERSION}.so" \
-       "${EXTENSION_DIR}/ioncube_loader_lin_${PHP_VERSION}.so"; \
-    echo "zend_extension=${EXTENSION_DIR}/ioncube_loader_lin_${PHP_VERSION}.so" \
-       > /usr/local/etc/php/conf.d/00-ioncube.ini; \
-    rm -rf /tmp/ioncube /tmp/ioncube.tar.gz; \
-    php -v
-
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- \
     --install-dir=/usr/local/bin \
@@ -108,6 +93,22 @@ ENV PAYMENTER_SKIP_DEFAULT=false
 COPY .github/docker/default.conf /etc/nginx/http.d/default.conf
 COPY .github/docker/www.conf /usr/local/etc/php-fpm.conf
 COPY .github/docker/supervisord.conf /etc/supervisord.conf
+
+# Install ionCube Loader for PHP 8.3 on Alpine/musl
+RUN set -eux; \
+    apk add --no-cache libstdc++ libgcc; \
+    curl -fSL "https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64_musl.tar.gz" \
+        -o /tmp/ioncube.tar.gz; \
+    tar -xzf /tmp/ioncube.tar.gz -C /tmp; \
+    PHP_VERSION="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"; \
+    EXTENSION_DIR="$(php -r 'echo ini_get("extension_dir");')"; \
+    ls -la /tmp/ioncube; \
+    cp "/tmp/ioncube/ioncube_loader_lin_${PHP_VERSION}.so" \
+       "${EXTENSION_DIR}/ioncube_loader_lin_${PHP_VERSION}.so"; \
+    echo "zend_extension=${EXTENSION_DIR}/ioncube_loader_lin_${PHP_VERSION}.so" \
+       > /usr/local/etc/php/conf.d/00-ioncube.ini; \
+    rm -rf /tmp/ioncube /tmp/ioncube.tar.gz; \
+    php -v
 
 EXPOSE 80
 
